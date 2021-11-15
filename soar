@@ -1,0 +1,8 @@
+#!/bin/zsh
+rm -rf soar.so
+maturin develop
+mv ./target/debug/libsoar.dylib ./soar.so
+SOAR_COMPILED=soar.so
+if [[ -f "$SOAR_COMPILED" ]]; then
+    python -i -c "from soar import *"
+fi
