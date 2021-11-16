@@ -4,6 +4,8 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::types::IntoPyDict;
 use numpy::{PyArray1,PyArray2};
+use std::time::{Duration, Instant};
+use std::thread::sleep;
 
 #[pyfunction]
 fn cwd() -> PyResult<String> {
@@ -31,12 +33,32 @@ fn call_aoloop(name: String) -> PyResult<()> {
     })
 }
 
-/// A Python module implemented in Rust. The name of this function must match
-/// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
-/// import the module.
+#[pyfunction]
+fn record_images(name: String, duration: f64, dt: f64) -> Vec<u128> {
+    let nsteps = (duration / dt).ceil() as usize;
+    let mut times = vec![0; nsteps];
+    let duration_interval = Duration::from_millis((duration * 1000.0) as u64);
+
+    Python::with_gil(|py| {
+        let _aoloop = PyModule::import(py, &name);
+        let mut i = 0;
+        let tstart = Instant::now();
+        while tstart.elapsed() <= duration_interval {
+            //let mut img: &PyArray2<f64> = aoloop.getattr("getim").call1((0.001,)).downcast::<PyArray2<f64>>();
+            times[i] = tstart.elapsed().as_micros();
+            sleep(Duration::from_millis(10));
+            i += 1;
+        }
+    println!("{}", i);
+    println!("{:?}", times);
+    return times
+    })
+}
+
 #[pymodule]
 fn soar(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(cwd, m)?)?;
     m.add_function(wrap_pyfunction!(call_aoloop, m)?)?;
+    m.add_function(wrap_pyfunction!(record_images, m)?)?;
     Ok(())
 }
